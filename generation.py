@@ -166,20 +166,6 @@ class TripletSearchDecoderPro(DynamicModel):
 
         return pairs
 
-    def branch_pro(
-        self, text: str, prefix: str, prompt: Optional[str] = None, **kwargs
-    ) -> List[Tuple[str, float]]:
-        _, scores = self.generate(text, prompt=prompt, **kwargs)
-        token_ids = scores.argmax(dim=-1).int().tolist()
-        # i = self.find_prefix_end(token_ids, prefix)
-        i = 0
-
-        pairs = []
-        for j in torch.argsort(scores[i])[-self.top_k :]:
-            p = (prompt or "") + self.gen.decode([token_ids[:i] + [j]], tokenizer=self.gen.tokenizer)[0]
-            pairs.append((p, scores[i, j].item()))
-
-        return pairs
 
     def run(self, text: str, use_mask: bool = False) -> List[RelationSentence]:
         if use_mask:
@@ -195,7 +181,7 @@ class TripletSearchDecoderPro(DynamicModel):
                 output, scores = self.generate(x, prompt=prompt_b)
                 token_ids = scores.argmax(dim=-1).int().tolist()
                 i = self.find_prefix_end(token_ids, prefix=" Relation :")
-                if i > len(scores)-1:  # todo: to deal with index out of bounds problem
+                if i > len(scores)-1: 
                     i = 0
                 score_c = max(scores[i].tolist())
                 if use_mask:
@@ -209,40 +195,6 @@ class TripletSearchDecoderPro(DynamicModel):
 
         return outputs
 
-    def run_pro(self, text: str, use_mask: bool = False) -> List[RelationSentence]:
-        if use_mask:
-            x = self.encoder.encode_x_(text)
-        else:
-            x = self.encoder.encode_x(text)
-        outputs = []
-        prompt_0 = self.encoder.encode_x_pro(text, t='head')
-        for prompt_a, score_a in self.branch_pro(x, prefix="Head Entity :", prompt=prompt_0):
-            prompt_a = self.encoder.encode_x_pro(prompt_a, t='tail')
-            for prompt_b, score_b in self.branch_pro(
-                x, prefix=" Tail Entity :", prompt=prompt_a
-            ):
-                prompt_b = self.encoder.encode_x_pro(prompt_b, t='relation')
-                output, scores = self.generate(x, prompt=prompt_b)
-                token_ids = scores.argmax(dim=-1).int().tolist()
-                # i = self.find_prefix_end(token_ids, prefix=" Relation :")
-                i = 0
-                try:
-                    score_c = max(scores[i].tolist())
-                except IndexError:
-                    print("output:", output)
-                    print("scores:", scores)
-                    print("token_ids:", token_ids)
-                    print("i:", i)
-                if use_mask:
-                    s = self.encoder.safe_decode_(x=x, y=output)
-                else:
-                    s = self.encoder.safe_decode(x=x, y=output)
-                s = self.constraint.run(s, scores)
-                # score_c = s.score  # From LabelConstraint
-                s.score = (score_a + score_b + score_c) / 3
-                outputs.append(s)
-
-        return outputs
 
 if __name__ == "__main__":
     Fire()
