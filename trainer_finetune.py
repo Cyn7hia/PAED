@@ -624,7 +624,8 @@ def run_eval(save_dir: str, path_model: str, path_test: str, data_name: str, spl
 
     trainer = Trainer(train_args, vae_args, data_args, 1, 1)
     if not last:
-        path_model_ext = Path(path_model) / "pytorch_model.bin"
+#         path_model_ext = Path(path_model) / "pytorch_model.bin"
+        path_model_ext = Path(train_args.model_dir) / "pytorch_model.bin"
     else:
         path_model_ext = Path(path_model) / "extraction_last.pt"
     path_model_vae = Path(path_model) / "vae_final.pt"
