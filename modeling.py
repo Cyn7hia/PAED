@@ -124,9 +124,9 @@ class RelationGenerator(RelationModel):
             )
             for o in outputs[0]:
                 raw.append(o["generated_text"] + "\n")
-                line = encoder.re_line(raw[-1])  # fix blank problem
+                line = encoder.re_line(raw[-1])
                 x, y = encoder.parse_line(line)
-                # x, y = encoder.parse_line(raw[-1])
+
                 try:
                     s = encoder.decode(x=prompt, y=y)
                     if s.is_valid():
