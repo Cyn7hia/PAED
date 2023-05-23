@@ -25,7 +25,7 @@ from model.RelationExt import RelationExt
 from model.VAESampler import MetaVAE
 from config import DataTrainingArguments, ModelArguments
 from model.configs.config import get_config
-from dataset import ExtDataTr, VAEData, get_dataloader, SingleExt
+from dataset import ExtDataTr, VAEData, get_dataloader
 from cst_trainer import CustomTrainer as FTTrainer
 
 from wrapper import Dataset as wr_Dataset
@@ -67,7 +67,7 @@ class Trainer(nn.Module):
                                                              num_training_steps=num_training_steps_vae)
 
     def train_step(self, data_batch, model_type='extraction', clip=1., gradient_accumulation_steps=1, k=3,
-                   grad_step=True):  # todo: clip_grad_norm_, accumulate_step
+                   grad_step=True):
 
         losses = []
 
@@ -215,8 +215,6 @@ class Trainer(nn.Module):
                 else:
                     x = [encoder.encode_x(t) for t in batch]
 
-                # data_ext = {key: value.cuda() if self.cuda else value
-                #             for key, value in data_batch.items() if key not in ['labels', 'decoder_input_ids']}
                 outputs = self.ext_model.run(x, tokenizer=tokenizer,
                                              max_length=self.max_length,
                                              save_scores=use_label_constraint,
@@ -254,7 +252,6 @@ class Trainer(nn.Module):
         sents = [
             Sentence(tokens=s.tokens, triplets=searcher.run(s.text, use_mask=use_mask))
             for s in tqdm(data.sents)
-            # for idx, s in enumerate(tqdm(data.sents)) if idx==0
         ]
         wr_Dataset(sents=sents).save(path_raw)
         for s in sents:
@@ -279,7 +276,6 @@ class Trainer(nn.Module):
         sents = [
             Sentence(tokens=s.tokens, triplets=searcher.run(s.text, use_mask=use_mask))
             for s in tqdm(data.sents)
-            # for idx, s in enumerate(tqdm(data.sents)) if idx==0
         ]
         wr_Dataset(sents=sents).save(path_raw)
         for s in sents:
@@ -311,10 +307,8 @@ class Trainer(nn.Module):
 
     def train_no_sampler(self, epoch, logger, dataloaders, path, accumulate_gr=1, model_type='extraction', save_each=False):
         path_model = Path(path) / f"{model_type}.pt"
-        # if not Path(path_model).exists():
-        #     Path(path_model).parent.mkdir(exist_ok=True, parents=True)
         dataloader_tr, dataloader_dev = dataloaders
-        # eval_loss = []
+
         best_loss = 1e+6
         if model_type == 'extraction':
             model = self.ext_model
@@ -346,8 +340,6 @@ class Trainer(nn.Module):
                 for dataset in tqdm(dataloader_dev, desc='iteration', leave=True, position=1):
                     res = self.eval_step(dataset, model_type=model_type)
                     results = Trainer._summary(results, res[0])
-
-                    # eval_loss.append(res[0]['loss'])
 
                 logger.info({k: v / len(dataloader_dev) for k, v in results.items()})
                 if results['loss'] / len(dataloader_dev) <= best_loss:
