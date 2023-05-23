@@ -207,7 +207,6 @@ class Trainer(nn.Module):
             constraint = LabelConstraint(labels=data.get_labels(), tokenizer=tokenizer)
             sents = []
 
-            # for data_batch in tqdm(dataset, desc='predicting'):
             for i in tqdm(range(0, len(texts), batch_size), desc='predicting'):
                 batch = texts[i: i + batch_size]
                 if use_mask:
@@ -223,8 +222,7 @@ class Trainer(nn.Module):
                                              do_sample=False)
 
                 for j, raw in enumerate(outputs):
-                    # x = self.ext_model.decode(data_ext['input_ids'], tokenizer=tokenizer)
-                    # x = self.ext_model.decode(x[i], tokenizer=tokenizer)
+
                     if use_mask:
                         triplet = encoder.safe_decode_(x[j], y=raw)
                     else:
