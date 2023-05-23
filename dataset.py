@@ -797,7 +797,6 @@ class ExtDataTr(SingleExtTr):
                 self.vae_dic[relation] = [{'context': vae_inp, 'index': idx}]
             else:
                 self.vae_dic[relation].append({'context': vae_inp, 'index': idx})
-            # self.vae_vocab.add_sentence(vae_inp)
 
     def get_vocab(self, path_in: str):
         self.vae_vocab = Vocabulary()
