@@ -93,7 +93,6 @@ class VAEData(Dataset):
 
         for sent in self.vae_inputs:
             self.sents.append(self.vae_vocab.to_indices(sent))
-        # self.preprocess_fun()
 
         self.len = len(self.sents)
 
@@ -270,15 +269,6 @@ class SingleExt(Dataset):
                         revision=model_args.model_revision,
                         use_auth_token=True if model_args.use_auth_token else None,
                         **tokenizer_kwargs, )
-
-        # self.data = self.get_data(self.path_in, name)
-        # self.gen_init_inputs()
-        # self.preprocess_fun()
-        #
-        # self.len = len(self.data[name]['text'])
-        #
-        # print('\n dataloader initialized!')
-
 
     def __getitem__(self, index):
 
@@ -464,14 +454,6 @@ class SingleExtTr(Dataset):
                         use_auth_token=True if model_args.use_auth_token else None,
                         **tokenizer_kwargs, )
 
-        # self.data = self.get_data(self.path_in, name)
-        # self.gen_init_inputs()
-        # self.preprocess_fun()
-        #
-        # self.len = len(self.data[name]['text'])
-        #
-        # print('\n dataloader initialized!')
-
 
     def __getitem__(self, index):
 
@@ -632,256 +614,6 @@ class SingleExtTr(Dataset):
         return dataset
 
 
-class ExtData(SingleExt):
-    def __init__(self, name, path, model_args, train_args, data_args, vae_args,
-                 data_name='u2t_map_all', split='unseen_10_seed_0/'):
-        super().__init__(name, path, model_args, train_args, data_args, vae_args, split=split)
-        path_in = "outputs/data/splits/zero_rte/" + data_name + "/" + split
-        self.path = path
-        self.get_vocab(path_in)
-        if name == 'synthetic':
-            self.data = self.get_data(path, name)
-        else:
-            self.data = self.get_data(path_in, name)
-        self.gen_init_inputs()
-
-        self.len = len(self.data[name]['text'])
-
-        print('\n dataloader initialized!')
-
-    def __getitem__(self, index):
-
-        return self.gen_inputs_idx['input_ids'][index], \
-               self.gen_inputs_idx['attention_mask'][index], \
-               self.gen_inputs_idx['labels'][index], \
-               self.gen_inputs_idx['decoder_input_ids'][index], \
-               self.ctr_inputs_idx_pos['input_ids'][index], \
-               self.ctr_inputs_idx_pos['attention_mask'][index], \
-               self.ctr_inputs_idx_neg[index]['input_ids'], \
-               self.ctr_inputs_idx_neg[index]['attention_mask'], \
-               torch.LongTensor(self.vae_inputs_ids['input_ids'][index]), \
-               torch.LongTensor([len(self.vae_inputs_ids['input_ids'][index])]),\
-               torch.LongTensor([self.vae_inputs_ids['relation_ids'][index]])
-                # self.ctr_inputs_idx_neg['input_ids'][index], \
-                # self.ctr_inputs_idx_neg['attention_mask'][index], \
-
-    def __len__(self):
-        return self.len
-
-    def collate_fn(self, data):
-
-        dat = pd.DataFrame(data)
-        ext_inp = []
-        # for i in [4, 6]:
-        #     ext_inp.extend(dat[i])
-        ext_inp.extend(dat[4])
-        for item in dat[6]:
-            ext_inp.extend(item)
-
-        ext_inp = pad_sequence(ext_inp, batch_first=True, padding_value=self.tokenizer.pad_token_id)
-
-        ext_att = []
-        # for i in [5, 7]:  #[1, 4, 6]:
-        #     ext_att.extend(dat[i])
-        ext_att.extend(dat[5])
-        for item in dat[7]:
-            ext_att.extend(item)
-        ext_att = pad_sequence(ext_att, batch_first=True, padding_value=0)
-        data_ext = {"input_ids": pad_sequence(dat[0], batch_first=True, padding_value=self.tokenizer.pad_token_id),
-                    "attention_mask": pad_sequence(dat[1], batch_first=True, padding_value=0),
-                    "labels": pad_sequence(dat[2], batch_first=True, padding_value=-100),
-                    "decoder_input_ids": pad_sequence(dat[3], batch_first=True, padding_value=self.tokenizer.pad_token_id)}
-        data_cnt = {"input_ids": ext_inp, "attention_mask": ext_att}
-
-        data_vae = {"input_vae": pad_sequence(dat[8], batch_first=True),
-                    "input_length": pad_sequence(dat[9], batch_first=True),
-                    "relations": pad_sequence(dat[10], batch_first=True)}
-
-        return [data_ext, data_cnt, data_vae]
-
-    def compute_dis(self, mus, logvars):
-        """
-        KL((m0,s0)||(m1,s1))
-        =.5 * (log(|s1|/|s0|) + tr(s1^(-1)s0) + (m1-m0)^T s1^{-1} (m1-m0) - N)
-        This function deals with KL-Divergence between any two multivariate normal distribution
-        in batch.
-        :param mus:
-        :param logvars:
-        :return:
-        """
-        n = logvars.size(0)
-        logvars_ = torch.diag_embed(logvars)
-        # logdet_var = torch.trace(logvars_)  # because of log operation on vars [B]
-        logdet_var = torch.sum(logvars, dim=1) # because of log operation on vars [B]
-        logdet_var1 = logdet_var.unsqueeze(1).repeat(1, n)
-        logdet_var2 = logdet_var.unsqueeze(0).repeat(n, 1)
-        item1 = logdet_var1 - logdet_var2  # [B, B]
-
-        std_2 = torch.exp(logvars_)
-        inv_std_2 = torch.inverse(std_2)  # [B, d, d] it's a diagonal matrix
-        # inv_std_2_vec = inv_std_2.diag()  # [B, d]
-        inv_std_2_vec = torch.diagonal(inv_std_2, dim1=1, dim2=2) # [B, d]
-        # item2 = torch.bmm(inv_std_2_vec, std_2.diag().transpose(0, 1))  # [B, B]
-        item2 = torch.mm(inv_std_2_vec, torch.diagonal(std_2, dim1=1, dim2=2).transpose(0, 1))  # [B, B]
-
-        mu1 = mus.unsqueeze(1).repeat(1, n, 1)  # [B, B, d]
-        mu2 = mus.unsqueeze(0).repeat(n, 1, 1)  # [B, B, d]
-        mu2_1_sq = (mu2-mu1) * (mu2-mu1)  # [B, B, d]
-        item3 = torch.matmul(mu2_1_sq, inv_std_2_vec.unsqueeze(2)).squeeze(-1)  # [B, B]
-
-        kl = 0.5 * (item1 + item2 + item3 - n)
-
-        return kl
-
-    def vae_sampling(self, model: Any, k=3):
-        self.vae_keys = list(self.vae_dic.keys())
-        vae_sents = []
-        vae_relations = []
-        for key in self.vae_keys:
-            vae_sents.append(random.choice(self.vae_dic[key])['context'])
-            # vae_relations.append(self.vae_keys.index(key))
-            vae_relations.append(self.rel_vocab[key])
-        vae_relations = torch.LongTensor(vae_relations)
-        # if self.cuda:
-        #     vae_relations = vae_relations.cuda()
-
-        vae_dataloader, _ = get_dataloader([[vae_sents, vae_relations], self.vae_vocab], model_type='vae', shuffle=False)
-
-        # get topk most close relations
-        model.eval()
-        mus = []
-        logvars = []
-        with torch.no_grad():
-            for data in vae_dataloader:
-                if self.cuda:
-                    data = [dt.cuda() for dt in data]
-
-                _, _, mu, logvar = model(data[0], relations=data[2], input_length=data[1].squeeze(1))
-                mus.append(mu)
-                logvars.append(logvar)
-            mus = torch.cat(mus, dim=0)
-            logvars = torch.cat(logvars, dim=0)
-
-        kl_div = -1.*self.compute_dis(mus, logvars)
-        kl_div.fill_diagonal_(float('-inf'))
-        # for each p2 (Q appoximate distribution) select topk most close k p1 (P true distribution)
-        indices = torch.topk(kl_div, k=k, dim=1, largest=True)[1]  # [B, k] B is the total number of relations
-
-        # indices -> int selected vae_relations -> str relations
-        self.selected_relations_idx = vae_relations[indices]
-
-    def preprocess_fun(self):
-
-        self.ctr_inputs_neg = []
-        self.vae_inputs = []
-        self.vae_rels = []
-
-        for idx, line in enumerate(self.data[self.name]['text']):
-
-            vae_inp = line.split("Context : ")[-1]
-            self.vae_inputs.append(vae_inp)
-
-            ctr_inps = []
-            true_rel = self.relations[idx]
-            relative_idx = self.vae_keys.index(true_rel)
-            true_rel_idx = self.rel_vocab[true_rel]
-            self.vae_rels.append(true_rel_idx)
-            # for rel_idx in self.selected_relations_idx[true_rel_idx]:
-                # neg_sample = random.choice(self.vae_dic[self.vae_keys[rel_idx]])
-            for rel_idx in self.selected_relations_idx[relative_idx]:  # todo: selected_relations_idx, vae_keys, vae_vocab?
-
-                neg_sample = random.choice(self.vae_dic[self.rev_rel_vocab[rel_idx.item()]])
-                neg_cnt = neg_sample["context"]
-                ctr_inps.append("Context : " + neg_cnt + " " + self.data[self.name]['summary'][idx])
-
-            self.ctr_inputs_neg.append(ctr_inps)
-            # self.ctr_inputs_neg.extend(ctr_inps)
-
-        self.gen_inputs_idx = self.tokenize(self.gen_inputs, targets=self.data[self.name]['summary'])
-        self.gen_inputs_idx['decoder_input_ids'] = SingleExt.shift_tokens_right(self.gen_inputs_idx['labels'],
-                                                         self.tokenizer.pad_token_id,
-                                                         self.decoder_start_token_id)
-        self.ctr_inputs_idx_pos = self.tokenize(self.ctr_inputs_pos)
-        # self.ctr_inputs_idx_neg = self.tokenize(self.ctr_inputs_neg)
-        self.ctr_inputs_idx_neg = [self.tokenize(item) for item in self.ctr_inputs_neg]
-        self.vae_inputs_ids = self.tokenize([self.vae_inputs, self.vae_rels], tokenizer=self.vae_vocab)
-
-    def decode(self, summary: str) -> Tuple[Any, Any, Any]:
-        front, back = summary.split(" , Relation : ")
-        relation = back.split(' .')[0]
-        front_, tail = front.split(" , Tail Entity :")
-        head = front_.split("Head Entity : ")[-1]
-        return head, tail, relation
-
-    def gen_init_inputs(self, use_mask=False):
-        # self.vae_vocab = Vocabulary()
-        self.gen_inputs = []
-        self.ctr_inputs_pos = []
-        self.heads = []
-        self.tails = []
-        self.relations = []
-        self.vae_dic = {}
-        for idx, line in tqdm(enumerate(self.data[self.name]['summary']), desc='gen_init...', leave=True):
-            head, tail, relation = self.decode(line)
-            self.heads.append(head)
-            self.tails.append(tail)
-            self.relations.append(relation)
-
-            context = self.data[self.name]['text'][idx]
-            if use_mask:
-                mask = '<mask>'
-                self.gen_inputs.append(f"{context} Head Entity : {mask} , Tail Entity : {mask} , Relation : {mask} .")
-            else:
-                self.gen_inputs.append(context)
-
-            self.ctr_inputs_pos.append(context + " " + line)  # todo: check str / list
-            vae_inp = context.split("Context : ")[-1]
-            if relation not in self.vae_dic:
-                self.vae_dic[relation] = [{'context': vae_inp, 'index': idx}]
-            else:
-                self.vae_dic[relation].append({'context': vae_inp, 'index': idx})
-            # self.vae_vocab.add_sentence(vae_inp)
-
-    def get_vocab(self, path_in: str):
-        self.vae_vocab = Vocabulary()
-        self.rev_rel_vocab = {}
-        data_dir = str(Path(self.save_dir) / "data")
-        path_out = Path(data_dir) / "vae_vocab.json"
-        path_out_rel = Path(data_dir) / "rel_vocab.json"
-        if Path(str(path_out)).exists():
-            with open(path_out, 'r') as f:
-                self.vae_vocab.word2index = json.load(f)
-            self.vae_vocab.update_vocab()
-
-            with open(path_out_rel, 'r') as f:
-                self.rel_vocab = json.load(f)
-
-        else:
-            self.rel_vocab = {}
-            for name in ['train', 'dev', 'synthetic']:
-                if name == 'synthetic':
-                    dataset = self.get_data(self.path, name)
-                else:
-                    dataset = self.get_data(path_in, name)
-                for idx, line in tqdm(enumerate(dataset[name]['text']), desc='get_vae_vocab', leave=True):
-                    head, tail, relation = self.decode(dataset[name]['summary'][idx])
-                    if relation not in self.rel_vocab:
-                        self.rel_vocab[relation] = len(self.rel_vocab)
-                    vae_inp = line.split("Context : ")[-1]
-                    self.vae_vocab.add_sentence(vae_inp)
-            with open(path_out, 'w') as f:
-                json.dump(self.vae_vocab.word2index, f)
-            with open(path_out_rel, 'w') as f:
-                json.dump(self.rel_vocab, f)
-
-        # generate reverse_rel_vocab: index to relation
-        for key in self.rel_vocab.keys():
-            self.rev_rel_vocab[self.rel_vocab[key]] = key
-
-        print("number of relations : ", len(self.rel_vocab))
-        print("number of vae vocabularies : ", len(self.vae_vocab.word2index))
-
-
 class ExtDataTr(SingleExtTr):
     def __init__(self, name, path, model_args, train_args, data_args, vae_args,
                  data_name='u2t_map_all', split='unseen_10_seed_0/', threshold_0=0.3, threshold_1=0.6):
@@ -955,7 +687,6 @@ class ExtDataTr(SingleExtTr):
         """
         n = logvars.size(0)
         logvars_ = torch.diag_embed(logvars)
-        # logdet_var = torch.trace(logvars_)  # because of log operation on vars [B]
         logdet_var = torch.sum(logvars, dim=1) # because of log operation on vars [B]
         logdet_var1 = logdet_var.unsqueeze(1).repeat(1, n)
         logdet_var2 = logdet_var.unsqueeze(0).repeat(n, 1)
@@ -963,9 +694,7 @@ class ExtDataTr(SingleExtTr):
 
         std_2 = torch.exp(logvars_)
         inv_std_2 = torch.inverse(std_2)  # [B, d, d] it's a diagonal matrix
-        # inv_std_2_vec = inv_std_2.diag()  # [B, d]
         inv_std_2_vec = torch.diagonal(inv_std_2, dim1=1, dim2=2) # [B, d]
-        # item2 = torch.bmm(inv_std_2_vec, std_2.diag().transpose(0, 1))  # [B, B]
         item2 = torch.mm(inv_std_2_vec, torch.diagonal(std_2, dim1=1, dim2=2).transpose(0, 1))  # [B, B]
 
         mu1 = mus.unsqueeze(1).repeat(1, n, 1)  # [B, B, d]
@@ -986,8 +715,6 @@ class ExtDataTr(SingleExtTr):
             # vae_relations.append(self.vae_keys.index(key))
             vae_relations.append(self.rel_vocab[key])
         vae_relations = torch.LongTensor(vae_relations)
-        # if self.cuda:
-        #     vae_relations = vae_relations.cuda()
 
         vae_dataloader, _ = get_dataloader([[vae_sents, vae_relations], self.vae_vocab], model_type='vae', shuffle=False)
 
@@ -1021,15 +748,12 @@ class ExtDataTr(SingleExtTr):
 
         for idx, line in enumerate(self.data[self.name]['text']):
 
-            # vae_inp = line.split("Context : ")[-1]
-
             ctr_inps = []
             true_rel = self.relations[idx]
             relative_idx = self.vae_keys.index(true_rel)
             true_rel_idx = self.rel_vocab[true_rel]
             self.vae_rels.append(true_rel_idx)
-            # for rel_idx in self.selected_relations_idx[true_rel_idx]:
-                # neg_sample = random.choice(self.vae_dic[self.vae_keys[rel_idx]])
+
             for rel_idx in self.selected_relations_idx[relative_idx]:  # todo: selected_relations_idx, vae_keys, vae_vocab?
 
                 neg_sample = random.choice(self.vae_dic[self.rev_rel_vocab[rel_idx.item()]])
@@ -1037,14 +761,12 @@ class ExtDataTr(SingleExtTr):
                 ctr_inps.append("Context : " + neg_cnt + " " + self.data[self.name]['summary'][idx])
 
             self.ctr_inputs_neg.append(ctr_inps)
-            # self.ctr_inputs_neg.extend(ctr_inps)
 
         self.gen_inputs_idx = self.tokenize(self.gen_inputs, targets=self.data[self.name]['summary'])
         self.gen_inputs_idx['decoder_input_ids'] = SingleExt.shift_tokens_right(self.gen_inputs_idx['labels'],
                                                          self.tokenizer.pad_token_id,
                                                          self.decoder_start_token_id)
         self.ctr_inputs_idx_pos = self.tokenize(self.ctr_inputs_pos)
-        # self.ctr_inputs_idx_neg = self.tokenize(self.ctr_inputs_neg)
         self.ctr_inputs_idx_neg = [self.tokenize(item) for item in self.ctr_inputs_neg]
 
     def preprocess_fun_(self):
@@ -1054,16 +776,13 @@ class ExtDataTr(SingleExtTr):
 
         for idx, line in enumerate(self.data[self.name]['text']):
 
-            # vae_inp = line.split("Context : ")[-1]
-
             ctr_inps = []
             true_rel = self.relations[idx]
             relative_idx = self.vae_keys.index(true_rel)
             true_rel_idx = self.rel_vocab[true_rel]
             self.vae_rels.append(true_rel_idx)
-            # for rel_idx in self.selected_relations_idx[true_rel_idx]:
-                # neg_sample = random.choice(self.vae_dic[self.vae_keys[rel_idx]])
-            for rel_idx in self.selected_relations_idx[relative_idx]:  # todo: selected_relations_idx, vae_keys, vae_vocab?
+
+            for rel_idx in self.selected_relations_idx[relative_idx]:
 
                 neg_sample = random.choice(self.vae_dic[self.rev_rel_vocab[rel_idx.item()]])
                 neg_cnt = neg_sample["context"]
@@ -1082,14 +801,12 @@ class ExtDataTr(SingleExtTr):
                         f"Context : {neg_cnt} Head Entity : {head} , Tail Entity : {relation} , Relation : {tail} .")
 
             self.ctr_inputs_neg.append(ctr_inps)
-            # self.ctr_inputs_neg.extend(ctr_inps)
 
         self.gen_inputs_idx = self.tokenize(self.gen_inputs, targets=self.data[self.name]['summary'])
         self.gen_inputs_idx['decoder_input_ids'] = SingleExt.shift_tokens_right(self.gen_inputs_idx['labels'],
                                                          self.tokenizer.pad_token_id,
                                                          self.decoder_start_token_id)
         self.ctr_inputs_idx_pos = self.tokenize(self.ctr_inputs_pos)
-        # self.ctr_inputs_idx_neg = self.tokenize(self.ctr_inputs_neg)
         self.ctr_inputs_idx_neg = [self.tokenize(item) for item in self.ctr_inputs_neg]
 
     def decode(self, summary: str) -> Tuple[Any, Any, Any]:
@@ -1100,7 +817,6 @@ class ExtDataTr(SingleExtTr):
         return head, tail, relation
 
     def gen_init_inputs(self, use_mask=False):
-        # self.vae_vocab = Vocabulary()
         self.gen_inputs = []
         self.ctr_inputs_pos = []
         self.heads = []
@@ -1129,7 +845,6 @@ class ExtDataTr(SingleExtTr):
             # self.vae_vocab.add_sentence(vae_inp)
 
     def gen_init_inputs_(self, use_mask=False):
-        # self.vae_vocab = Vocabulary()
         self.gen_inputs = []
         self.ctr_inputs_pos = []
         self.heads = []
@@ -1212,14 +927,10 @@ def get_dataloader(inps, model_type='vae', shuffle=True, bz=32, num_workers=1, p
         data = VAEData([vae_sents, vae_relations], vae_vocab)
 
     elif model_type in ['extraction', 'single_vae']:
-        data = inps  # todo: check?
+        data = inps 
 
     else:
-        # name = inps[0]
-        # if name != 'test' and model_type != 'single_ext':
-        #     name, path, model_args, train_args, data_args, vae_args, vae_model = inps
-        #     data = ExtData(name, path, model_args, train_args, data_args, vae_args, vae_model)
-        # else:
+
         name, path, model_args, train_args, data_args, vae_args, data_name, split = inps
         data = SingleExt(name, path, model_args, train_args, data_args, vae_args,
                          data_name=data_name, split=split)
@@ -1236,14 +947,3 @@ def get_dataloader(inps, model_type='vae', shuffle=True, bz=32, num_workers=1, p
 
     return dataloader, tokenizer
 
-
-
-
-# data = PersonaData.load('./outputs/wrapper/u2t_map_all/unseen_10_seed_0/extractor/data/dev.json')
-# from datasets import load_dataset
-# data_files = {}
-# data_files["dev"] = './outputs/wrapper/u2t_map_all/unseen_10_seed_0/extractor/data/dev.json'
-# datasets = load_dataset(
-#             "json", data_files=data_files
-#         )
-# print("done")
