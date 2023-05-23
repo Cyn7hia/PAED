@@ -625,7 +625,6 @@ class ExtDataTr(SingleExtTr):
         self.threshold_1 = threshold_1
         if name == 'synthetic':
             self.data = self.get_data(path, name)
-            # self.data_train = self.get_data(path_in, 'train')
         else:
             self.data = self.get_data(path_in, name)
 
@@ -769,46 +768,6 @@ class ExtDataTr(SingleExtTr):
         self.ctr_inputs_idx_pos = self.tokenize(self.ctr_inputs_pos)
         self.ctr_inputs_idx_neg = [self.tokenize(item) for item in self.ctr_inputs_neg]
 
-    def preprocess_fun_(self):
-
-        self.ctr_inputs_neg = []
-        self.vae_rels = []
-
-        for idx, line in enumerate(self.data[self.name]['text']):
-
-            ctr_inps = []
-            true_rel = self.relations[idx]
-            relative_idx = self.vae_keys.index(true_rel)
-            true_rel_idx = self.rel_vocab[true_rel]
-            self.vae_rels.append(true_rel_idx)
-
-            for rel_idx in self.selected_relations_idx[relative_idx]:
-
-                neg_sample = random.choice(self.vae_dic[self.rev_rel_vocab[rel_idx.item()]])
-                neg_cnt = neg_sample["context"]
-                neg_id = neg_sample["index"]
-                neg_head = self.heads[neg_id]
-                neg_tail = self.tails[neg_id]
-                head, tail, relation = self.decode(self.data[self.name]['summary'][idx])
-                if random.random() < self.threshold_0:
-                    ctr_inps.append(
-                        f"Context : {neg_cnt} Head Entity : {neg_head} , Tail Entity : {relation} , Relation : {tail} .")
-                elif random.random() >= self.threshold_0 and random.random() < self.threshold_1:
-                    ctr_inps.append(
-                        f"Context : {neg_cnt} Head Entity : {head} , Tail Entity : {relation} , Relation : {neg_tail} .")
-                else:
-                    ctr_inps.append(
-                        f"Context : {neg_cnt} Head Entity : {head} , Tail Entity : {relation} , Relation : {tail} .")
-
-            self.ctr_inputs_neg.append(ctr_inps)
-
-        self.gen_inputs_idx = self.tokenize(self.gen_inputs, targets=self.data[self.name]['summary'])
-        self.gen_inputs_idx['decoder_input_ids'] = SingleExt.shift_tokens_right(self.gen_inputs_idx['labels'],
-                                                         self.tokenizer.pad_token_id,
-                                                         self.decoder_start_token_id)
-        self.ctr_inputs_idx_pos = self.tokenize(self.ctr_inputs_pos)
-        self.ctr_inputs_idx_neg = [self.tokenize(item) for item in self.ctr_inputs_neg]
-
     def decode(self, summary: str) -> Tuple[Any, Any, Any]:
         front, back = summary.split(" , Relation : ")
         relation = back.split(' .')[0]
@@ -843,41 +802,6 @@ class ExtDataTr(SingleExtTr):
             else:
                 self.vae_dic[relation].append({'context': vae_inp, 'index': idx})
             # self.vae_vocab.add_sentence(vae_inp)
-
-    def gen_init_inputs_(self, use_mask=False):
-        self.gen_inputs = []
-        self.ctr_inputs_pos = []
-        self.heads = []
-        self.tails = []
-        self.relations = []
-        self.vae_dic = {}
-        sample_id = 0
-        # for name in ['train', self.name]:
-        datas = [('train', self.data_train['train']), (self.name, self.data[self.name])] if self.name == 'synthetic' else [(self.name, self.data[self.name])]
-        for (data_name, dat) in datas:
-            for idx, line in tqdm(enumerate(dat['summary']), desc='gen_init...', leave=True):
-                head, tail, relation = self.decode(line)
-                self.heads.append(head)
-                self.tails.append(tail)
-                self.relations.append(relation)
-
-                context = dat['text'][idx]
-                if data_name != 'train':
-                    if use_mask:
-                        mask = '<mask>'
-                        self.gen_inputs.append(f"{context} Head Entity : {mask} , Tail Entity : {mask} , Relation : {mask} .")
-                    else:
-                        self.gen_inputs.append(context)
-
-                    self.ctr_inputs_pos.append(context + " " + line) 
-
-                vae_inp = context.split("Context : ")[-1]
-                if relation not in self.vae_dic:
-                    self.vae_dic[relation] = [{'context': vae_inp, 'index': sample_id}]
-                else:
-                    self.vae_dic[relation].append({'context': vae_inp, 'index': sample_id})
-
-                sample_id += 1
 
     def get_vocab(self, path_in: str):
         self.vae_vocab = Vocabulary()
