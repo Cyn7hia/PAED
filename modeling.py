@@ -51,7 +51,7 @@ class RelationModel(DynamicModel):
     def make_pipe(self, **kwargs) -> Pipeline:
         pipe = pipeline(
             self.pipe_name,
-            model=self.model_dir,  # self.model_name, #
+            model=self.model_dir,
             tokenizer=self.model_name,
             device=0 if torch.cuda.is_available() else -1,
             **kwargs,
@@ -117,7 +117,7 @@ class RelationGenerator(RelationModel):
                 [prompt],
                 num_return_sequences=self.batch_size,
                 max_length=self.block_size,
-                pad_token_id=self.eos_token_id,  # TODO: check RelationPrompt last 3 lines(changed)
+                pad_token_id=self.eos_token_id,
                 do_sample=True,
                 top_k=50,
                 temperature=1.0
@@ -183,32 +183,25 @@ class NewRelationGenerator(RelationModel):
             **kwargs,
         )
         train_args = self.get_train_args(do_eval=path_dev is not None)
-        # kwargs = {
-        #     k: v for k, v in train_args.to_dict().items() if not k.startswith("_")
-        # }
         kwargs = {
             k: v for k, v in train_args.to_dict().items() if not k.startswith("_") and
                                                              k not in ['log_level', 'log_level_replica']
         }
-        # kwargs['device'] = 'cuda'
-        # print("get_train", kwargs)
+
         train_args = run_summarization.Seq2SeqTrainingArguments(**kwargs)
-        # train_args.device = 'cuda'
-        # print("train_args", train_args)
+
         model_args = run_summarization.ModelArguments(
             model_name_or_path=self.model_name
         )
-        # print("model_args", model_args)
+
         run_summarization.main(
             model_args=model_args, training_args=train_args, data_args=data_args
         )
 
     def load_generator(self, device: torch.device) -> TextGenerator:
         gen = TextGenerator(
-            model=AutoModelForSeq2SeqLM.from_pretrained(self.model_dir),  # origin
-            tokenizer=AutoTokenizer.from_pretrained(self.model_dir),  # origin
-            # model=AutoModelForSeq2SeqLM.from_pretrained(self.model_name),
-            # tokenizer=AutoTokenizer.from_pretrained(self.model_name),
+            model=AutoModelForSeq2SeqLM.from_pretrained(self.model_dir),
+            tokenizer=AutoTokenizer.from_pretrained(self.model_dir),
             max_length=self.max_target_length,
         )
         gen.model = gen.model.to(device)
