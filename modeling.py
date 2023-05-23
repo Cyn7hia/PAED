@@ -103,56 +103,6 @@ class RelationGenerator(RelationModel):
             model_args=model_args, training_args=train_args, data_args=data_args
         )
 
-    def generate_(
-        self, relation: str, entity2: list, num: int, pipe: Pipeline
-    ) -> Tuple[List[RelationSentence], List[str]]:
-        set_seed(self.random_seed)
-        encoder = self.get_encoder()
-
-        sents, raw = [], []
-        errors = set()
-        idx = 0
-        while len(sents) < num:
-            ent_idx = idx % len(entity2)
-            ent = entity2[ent_idx][0]
-            prompt = encoder.encode_prompt(relation, ent)
-            idx += 1
-            count = 0
-            outputs = pipe(
-                [prompt],
-                num_return_sequences=self.batch_size,
-                max_length=self.block_size,
-                pad_token_id=self.eos_token_id,  # TODO: check RelationPrompt last 3 lines(changed)
-                do_sample=True,
-                top_k=50,
-                temperature=1.0
-            )
-            # print(outputs)
-            random.shuffle(outputs[0])
-            for o in outputs[0]:
-                raw.append(o["generated_text"] + "\n")
-                line = encoder.re_line(raw[-1])  # fix blank problem
-                x, y = encoder.parse_line(line)
-                # x, y = encoder.parse_line(raw[-1])
-                # print("y", y)
-                try:
-                    s = encoder.decode_(x=prompt, y=y)  # todo: encode.decode_?
-                    # print(s)
-                    if s.is_valid():
-                        sents.append(s)
-                        count += 1
-                        if count == 15:
-                            break
-                except Exception as e:
-                    # print("exception", e)
-                    errors.add(str(e))
-
-            # print(dict(target=num, success=len(sents), raw=len(raw)))
-        print(dict(target=num, success=len(sents), raw=len(raw)))
-        assert len(sents) >= num
-        print(dict(prompt=prompt, success_rate=len(sents) / len(raw), errors=errors))
-        return sents[:num], raw
-
     def generate(
         self, relation: str, num: int, pipe: Pipeline
     ) -> Tuple[List[RelationSentence], List[str]]:
