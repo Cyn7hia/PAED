@@ -585,7 +585,7 @@ def gen_synthetic(
         save_dir=str(Path(save_dir) / "generator"),
     )
 
-    generator.fit(path_train, path_dev, tail=tail)
+    generator.fit(path_train, path_dev)
     path_synthetic = str(Path(save_dir) / "synthetic.jsonl")
 
     labels_dev = wr_Dataset.load(path_dev).get_labels()
