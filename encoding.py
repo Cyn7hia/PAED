@@ -53,7 +53,6 @@ class Encoder(BaseModel):
     def decode_(self, x: str, y: str) -> RelationSentence:
         raise NotImplementedError
 
-    # fix no blanks between token and marks
     def re_line(self, line: str) -> str:
         # https://stackoverflow.com/questions/44263446/python-regex-to-add-space-after-dot-or-comma
         line_0 = re.sub(r'(?<=[.,:?"])(?=[^\s])', r' ', line)
