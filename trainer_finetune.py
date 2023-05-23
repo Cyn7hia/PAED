@@ -140,7 +140,7 @@ class Trainer(nn.Module):
 
         return losses
 
-    def eval_step(self, data_batch, model_type='extraction', k=3):  # todo: evaluate ext result
+    def eval_step(self, data_batch, model_type='extraction', k=3):
 
         losses = []
         if model_type in ['extraction', 'both']:
@@ -610,7 +610,6 @@ def run_eval(save_dir: str, path_model: str, path_test: str, data_name: str, spl
     ext_save_dir = str(Path(save_dir) / "extractor")
     model_args, train_args, data_args, vae_args = get_args(ext_save_dir)
     data = wr_Dataset.load(path_test)
-    # model = Extractor(load_dir=str(Path(path_model) / "model"), save_dir=path_model)
     data_dir = str(Path(ext_save_dir) / "data")
     path_vocab = Path(data_dir) / "vae_vocab.json"
     path_rel = Path(data_dir) / "rel_vocab.json"
