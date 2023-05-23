@@ -43,46 +43,6 @@ class Dataset(BaseModel):
     def get_labels(self) -> List[str]:
         return sorted(set(t.label for s in self.sents for t in s.triplets))
 
-    def get_prompt(self) -> Dict[str, Any]:
-        with open("./outputs/data/concept/entity2_to_cpt.json", "r") as f:
-            entity2_to_cpt = json.load(f)
-
-        labels = {}
-        for s in self.sents:
-            for t in s.triplets:
-                entity2 = t.as_tuple()[2]
-                rel = t.label
-                if entity2 in entity2_to_cpt:
-                    if rel not in labels:
-
-                        labels[rel] = deepcopy(entity2_to_cpt[entity2])
-                    else:
-
-                        for cpt in entity2_to_cpt[entity2]:
-                            if cpt not in labels[rel]:
-                                labels[rel].append(cpt)
-
-        return labels
-
-    def get_symprompt(self) -> Dict[str, Any]:
-        with open("./outputs/data/concept/rel_to_entities_.json", "r") as f:
-            rel2ent = json.load(f)
-        relations = self.get_labels()
-        labels = {}
-        # for rel in rel2ent.keys():
-        for rel in relations:
-            if rel == "have_no":
-                rel2ent[rel] = rel2ent["own"]
-            if rel in rel2ent:
-                labels[rel] = []
-                for value in rel2ent[rel]:
-                    labels[rel].append([" ".join(value.split('_'))])
-            else:
-                print("cannot find label info: ", rel)
-
-        return labels
-        # return sorted(set(t.label + " Entity2 : " + t.as_tuple()[2] for s in self.sents for t in s.triplets))
-
     @classmethod
     def combine_label(cls, dev_l, test_l):
         for key in dev_l.keys():
