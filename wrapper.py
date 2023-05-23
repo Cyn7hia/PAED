@@ -116,63 +116,7 @@ class Dataset(BaseModel):
         )
         print(json.dumps(info, indent=2))
 
-
-def get_entity2_vocab(dev, test):
-    sents_dev = dev.sents
-    sents_test = test.sents
-    pos_set = ["VB", "VBD", "VBG", "VBN", "VBP", "VBZ",
-               "JJ", "JJR", "JJS", "NN", "NNS", "RB", "RBR", "RBS", "RP"]
-    entity2_dic = {}
-    vocab = {}
-    for sents in [sents_dev, sents_test]:
-        for sent in sents:
-            for trp in sent.triplets:
-                s, r, o = trp.as_tuple()
-                tokens = word_tokenize(o)
-                pos = pos_tag(tokens)
-                phrase = []
-                phrase_pos = set()
-                entity2s = []
-                for t in pos:
-                    if t[1] in pos_set:
-                        if len(phrase_pos) < 2:
-
-                            phrase.append(t[0])
-                            phrase_pos.add(t[1])
-                        else:
-
-                            entity2s.append(phrase)
-
-                            phrase = [t[0]]
-                            phrase_pos = set()
-                            phrase_pos.add(t[1])
-
-                entity2s.append(phrase)
-                for p in entity2s:
-                    if o in entity2_dic:
-                        if " ".join(p) not in entity2_dic[o]:
-                            entity2_dic[o].append(" ".join(p))
-                        if " ".join(p) not in vocab:
-                            vocab[" ".join(p)] = ""
-
-                    else:
-                        entity2_dic[o] = [" ".join(p)]
-                        vocab[" ".join(p)] = ""
-                    for t in p:
-                        if t not in entity2_dic[o]:
-                            entity2_dic[o].append(t)
-                        if t not in vocab:
-                            vocab[t] = ""
-
-    with open("./outputs/data/concept/entity2_dic.json", "w") as f:
-        json.dump(entity2_dic, f)
-
-    with open("./outputs/data/concept/vocab.json", "w") as f:
-        json.dump(vocab, f)
-
-    return
-
-
+        
 def write_data_splits(
     path_in: str,
     mode: str,
@@ -231,19 +175,19 @@ class Generator(BaseModel):
         )
         return model
 
-    def write_data(self, data: Dataset, name: str, tail: bool=True) -> str:
+    def write_data(self, data: Dataset, name: str) -> str:
         model = self.get_model()
         path_out = Path(model.data_dir) / f"{name}.txt"
         path_out.parent.mkdir(exist_ok=True, parents=True)
         encoder = model.get_encoder()
-        lines = [encoder.encode_to_line(t, tail=tail) for s in data.sents for t in s.triplets]
+        lines = [encoder.encode_to_line(t) for s in data.sents for t in s.triplets]
         random.seed(model.random_seed)
         random.shuffle(lines)
         with open(path_out, "w") as f:
             f.write("".join(lines))
         return str(path_out)
 
-    def fit(self, path_train: str, path_dev: str, tail: bool=True):
+    def fit(self, path_train: str, path_dev: str):
         model = self.get_model()
         if Path(model.model_dir).exists():
             print("model directory already exists:", model.model_dir)
@@ -251,8 +195,8 @@ class Generator(BaseModel):
 
         data_train = Dataset.load(path_train)
         data_dev = Dataset.load(path_dev)
-        path_train = self.write_data(data_train, "train", tail=tail)
-        path_dev = self.write_data(data_dev, "dev", tail=tail)
+        path_train = self.write_data(data_train, "train")
+        path_dev = self.write_data(data_dev, "dev")
         model.fit(path_train=path_train, path_dev=path_dev)
         delete_checkpoints(model.model_dir)
 
