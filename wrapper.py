@@ -10,7 +10,6 @@ from pydantic.main import BaseModel
 from tqdm import tqdm
 from nltk import word_tokenize, pos_tag
 
-from generation import LabelConstraint, TripletSearchDecoder
 from modeling import (NewRelationExtractor, RelationGenerator, RelationModel,
                       select_model)
 from utils import (RelationSentence, delete_checkpoints, safe_divide)
