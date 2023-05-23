@@ -90,7 +90,7 @@ class Trainer(nn.Module):
             if model_type == 'extraction':
                 loss = loss_gen
             else:
-                loss = loss_gen + 0.05* loss_cnt
+                loss = loss_gen + 0.5* loss_cnt
 
             loss = loss / gradient_accumulation_steps
             loss.backward()
@@ -125,7 +125,7 @@ class Trainer(nn.Module):
 
             # loss: vae
             losses_vae = self.vae.loss_function(*res_vae, input_length=input_length.squeeze(1))
-            loss_vae = losses_vae.pop('loss')  # check the pop mechanism
+            loss_vae = losses_vae.pop('loss')
             loss_vae = loss_vae / gradient_accumulation_steps
             loss_vae.backward()
 
@@ -167,7 +167,7 @@ class Trainer(nn.Module):
                                'loss_gen': loss_gen.detach().item(),
                                'loss_cnt': 0.})
             else:
-                loss = loss_gen + 0.05* loss_cnt
+                loss = loss_gen + 0.5* loss_cnt
 
                 losses.append({'loss': loss.detach().item(),
                                'loss_gen': loss_gen.detach().item(),
@@ -360,8 +360,6 @@ class Trainer(nn.Module):
                     path_model_ = Path(path) / f"{model_type}_{i}.pt"
                     torch.save(model_state, path_model_)
 
-            # eval_loss = []
-        # save_model(model_type)
 
     @staticmethod
     def _summary(results, res):
@@ -444,9 +442,7 @@ def eval_model(trainer, val_dataset):
 def training(save_dir, path_model, data_name, split, logger):
     ext_save_dir = str(Path(save_dir) / "extractor")
     model_args, train_args, data_args, vae_args = get_args(ext_save_dir, do_pretrain=True)
-    # print("model_args: ", model_args)
-    # print("train_args: ", train_args)
-    # print("data_args: ", data_args)
+
     train_vae = VAEData(path=save_dir, train_args=train_args, name='train', data_name=data_name, split=split)
     dev_vae = VAEData(path=save_dir, train_args=train_args, name='dev', data_name=data_name, split=split)
     vae_dataloader_tr, _ = get_dataloader(train_vae, model_type='single_vae', bz=train_args.per_device_train_batch_size)
@@ -469,42 +465,32 @@ def training(save_dir, path_model, data_name, split, logger):
     vae_args.model_params.vocab_size = vae_vocab_size
     trainer = Trainer(train_args, vae_args, data_args, num_training_steps_ext, num_training_steps_vae)
 
-    # path_ = str(Path(save_dir) / "runs")
-
     if not Path(path_model).exists():
         Path(path_model).mkdir(exist_ok=True, parents=True)
 
     trainer.train_no_sampler(vae_args.trainer_params.max_epochs, logger, [vae_dataloader_tr, vae_dataloader_dev],
                              path_model,
                              model_type='vae', accumulate_gr=train_args.gradient_accumulation_steps)
-    # trainer.train_no_sampler(train_args.num_train_epochs, logger, [ext_dataloader_tr, ext_dataloader_dev], path_model,
-    #                          model_type='extraction', accumulate_gr=train_args.gradient_accumulation_steps)
+    trainer.train_no_sampler(train_args.num_train_epochs, logger, [ext_dataloader_tr, ext_dataloader_dev], path_model,
+                             model_type='extraction', accumulate_gr=train_args.gradient_accumulation_steps)
 
 
 def finetuning(save_dir, path_model, data_name, split, logger, last=False, k=3):
     ext_save_dir = str(Path(save_dir) / "extractor")
     model_args, train_args, data_args, vae_args = get_args(ext_save_dir, do_pretrain=False)
-    # print("finetune_args: ", train_args)
 
     train_vae = VAEData(path=save_dir, train_args=train_args, name='synthetic', data_name=data_name, split=split)
     dev_vae = VAEData(path=save_dir, train_args=train_args, name='dev', data_name=data_name, split=split)
     vae_dataloader_tr, _ = get_dataloader(train_vae, model_type='single_vae', bz=train_args.per_device_train_batch_size)
     vae_dataloader_dev, _ = get_dataloader(dev_vae, model_type='single_vae', bz=train_args.per_device_train_batch_size)
 
-    # ext_dataloader_dev, _ = get_dataloader(['dev', save_dir, model_args, train_args, data_args, vae_args,
-    #                                         data_name, split],
-    #                                        model_type='single_ext', bz=train_args.per_device_train_batch_size)
-    # dev_data = SingleExt('dev', save_dir, model_args, train_args, data_args, vae_args,
-    #                      data_name=data_name, split=split)
     dev_data = ExtDataTr('dev', save_dir, model_args, train_args, data_args, vae_args,
                          data_name=data_name, split=split)
-    # dev_data.initialize()
 
     len_dataloader = len(vae_dataloader_tr)
     num_update_steps_per_epoch = len_dataloader // train_args.gradient_accumulation_steps
     num_update_steps_per_epoch = max(num_update_steps_per_epoch, 1)
     num_training_steps = math.ceil(train_args.num_train_epochs * num_update_steps_per_epoch)
-    # num_training_steps = len(ext_dataloader_tr) * train_args.num_train_epochs
 
     train_data = ExtDataTr('synthetic', save_dir, model_args, train_args, data_args, vae_args,
                          data_name=data_name, split=split)
@@ -514,9 +500,7 @@ def finetuning(save_dir, path_model, data_name, split, logger, last=False, k=3):
     vae_args.model_params.vocab_size = vae_vocab_size
     trainer = Trainer(train_args, vae_args, data_args, num_training_steps, num_training_steps)
 
-    # path_ = str(Path(save_dir) / "runs")
     path_model_ext = Path(path_model) / "extraction.pt"
-    # path_model_ext = Path(path_model) / "pytorch_model.bin"
     path_model_vae = Path(path_model) / "vae.pt"
     if Path(str(path_model_ext)).exists() and Path(str(path_model_vae)).exists():
         trainer.load_model(path_model_ext, path_model_vae)
@@ -589,8 +573,6 @@ def get_args(ext_save_dir: str, do_pretrain: bool = False):
     return model_args, train_args, data_args, vae_args
 
 
-# from transformers.utils import logging
-# logger = logging.get_logger(__name__)
 def gen_synthetic(
         save_dir: str,
         path_train: str,
@@ -635,7 +617,6 @@ def main(
     training(save_dir, path_model, data_name, split, logger)
     finetuning(save_dir, path_model, data_name, split, logger, last=last)
     print("done!")
-    # PersonaData(_config)_config containig ext_save_dir
 
 
 def run_eval(save_dir: str, path_model: str, path_test: str, data_name: str, split: str, mode: str,
@@ -661,8 +642,7 @@ def run_eval(save_dir: str, path_model: str, path_test: str, data_name: str, spl
 
     trainer = Trainer(train_args, vae_args, data_args, 1, 1)
     if not last:
-        # path_model_ext = Path(path_model) / "extraction_final.pt"
-        path_model_ext = Path(path_model) / "pytorch_model_trn_850.bin"
+        path_model_ext = Path(path_model) / "pytorch_model.bin"
     else:
         path_model_ext = Path(path_model) / "extraction_last.pt"
     path_model_vae = Path(path_model) / "vae_final.pt"
@@ -710,16 +690,16 @@ def run_eval(save_dir: str, path_model: str, path_test: str, data_name: str, spl
 class ExtractorArg(BaseModel):
     model_dir: str
     do_pretrain: bool
-    batch_size: int = 8  # 8 # 32  # 64
-    grad_accumulation: int = 4  # 16  # 1  # 2
-    random_seed: int = 42  # 42
+    batch_size: int = 8  
+    grad_accumulation: int = 4 
+    random_seed: int = 42 
     warmup_ratio: float = 0.2
-    lr_pretrain: float = 3e-5  # 3e-4
-    lr_finetune: float = 6e-6  # 8e-6  # 6e-6  # 3e-5
-    epochs_pretrain: int = 5  # 3
+    lr_pretrain: float = 3e-5 
+    lr_finetune: float = 6e-6 
+    epochs_pretrain: int = 5 
     epochs_finetune: int = 5
     label_smoothing_factor: float = 0.
-    train_fp16: bool = True  # False  # True
+    train_fp16: bool = True 
 
     def get_train_args(self, do_eval: bool) -> TrainingArguments:
         return TrainingArguments(
@@ -750,21 +730,7 @@ class ExtractorArg(BaseModel):
 
 
 if __name__ == "__main__":
-    # main(save_dir="outputs/wrapper/u2t_map_all/unseen_10_seed_0",
-    #     path_model="outputs/wrapper/u2t_map_all/unseen_10_seed_0/runs",
-    #     split="unseen_10_seed_0/")
-    # run_eval(save_dir="outputs/wrapper/u2t_map_all/unseen_10_seed_0",
-    #          path_model="outputs/wrapper/u2t_map_all/unseen_10_seed_0/runs",
-    #          path_test="outputs/data/splits/zero_rte/u2t_map_all/unseen_10_seed_0/test.jsonl",
-    #          split="unseen_10_seed_0/",
-    #          mode='single')
-    # run_eval(save_dir="outputs/wrapper/u2t_map_all/unseen_10_seed_0",
-    #          path_model="outputs/wrapper/u2t_map_all/unseen_10_seed_0/runs",
-    #          path_test="outputs/data/splits/zero_rte/u2t_map_all/unseen_10_seed_0/test.jsonl",
-    #          split='unseen_10_seed_0/',
-    #          mode='multi')
-    occp_tensor = torch.randn([2000, 1000, 1000]).cuda()
-    del occp_tensor
+
     num_test_labels = [10]  # [5, 10, 15]
     seeds = [0]  # [0, 1, 2, 3, 4]
     for n in num_test_labels:
@@ -780,15 +746,15 @@ if __name__ == "__main__":
             path_dev = "outputs/data/splits/zero_rte/" + data_name + "/" + split_ + "/dev.jsonl"
             path_test = "outputs/data/splits/zero_rte/" + data_name + "/" + split_ + "/test.jsonl"
             split = split_ + "/"
-            # main(
-            #     path_train=path_train,
-            #     path_dev=path_dev,
-            #     path_test=path_test,
-            #     save_dir=save_dir,
-            #     path_model=path_model,
-            #     data_name=data_name,
-            #     split=split,
-            #     last=False)
+            main(
+                path_train=path_train,
+                path_dev=path_dev,
+                path_test=path_test,
+                save_dir=save_dir,
+                path_model=path_model,
+                data_name=data_name,
+                split=split,
+                last=False)
             run_eval(save_dir=save_dir,
                      path_model=path_model,
                      path_test=path_test,
