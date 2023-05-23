@@ -103,7 +103,6 @@ class GenerateEncoder(Encoder):
     def parse_line(self, line: str) -> Tuple[str, str]:
         line_ = " ".join(word_tokenize(line.strip()))
         return "", line_
-        # return "", line.strip()
 
 
 class ExtractEncoder(Encoder):
