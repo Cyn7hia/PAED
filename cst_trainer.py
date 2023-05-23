@@ -1,3 +1,9 @@
+'''
+Author: Luyao Zhu
+Email: luyao001@e.ntu.edu.sg
+revised from transformer (V4.29.1) trainer
+https://github.com/huggingface/transformers/blob/v4.29.1/src/transformers/trainer.py#L230
+'''
 import math
 import sys
 import os
