@@ -110,7 +110,6 @@ class VAEData(Dataset):
     def collate_fn(self, data):
         # Sort by conversation length (descending order) to use 'pack_padded_sequence'
         data.sort(key=lambda x: x[1], reverse=True)
-        # len_sorted, indices = torch.sort(data[2], descending=True)
         dat = pd.DataFrame(data)
 
         return [pad_sequence(dat[idx], batch_first=True) for idx in dat]
