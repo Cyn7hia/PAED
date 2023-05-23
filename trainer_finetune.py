@@ -577,8 +577,7 @@ def gen_synthetic(
         save_dir: str,
         path_train: str,
         path_dev: str,
-        path_test: str,
-        tail: bool = True
+        path_test: str
 
 ):
     generator = Generator(
@@ -589,15 +588,9 @@ def gen_synthetic(
     generator.fit(path_train, path_dev, tail=tail)
     path_synthetic = str(Path(save_dir) / "synthetic.jsonl")
 
-    if tail:
-        labels_dev = wr_Dataset.load(path_dev).get_symprompt()
-        labels_test = wr_Dataset.load(path_test).get_symprompt()
-        labels = wr_Dataset.combine_label(labels_dev, labels_test)
-        generator.generate_(labels, path_out=path_synthetic)
-    else:
-        labels_dev = wr_Dataset.load(path_dev).get_labels()
-        labels_test = wr_Dataset.load(path_test).get_labels()
-        generator.generate(labels_dev + labels_test, path_out=path_synthetic)
+    labels_dev = wr_Dataset.load(path_dev).get_labels()
+    labels_test = wr_Dataset.load(path_test).get_labels()
+    generator.generate(labels_dev + labels_test, path_out=path_synthetic)
 
 
 def main(
