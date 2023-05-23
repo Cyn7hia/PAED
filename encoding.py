@@ -16,9 +16,6 @@ class Encoder(BaseModel):
     def encode_x(self, x: str) -> str:
         raise NotImplementedError
 
-    def encode_x_pro(self, x: str, t: str) -> str:
-        raise NotImplementedError
-
     def encode(self, sent: RelationSentence) -> Tuple[str, str]:
         raise NotImplementedError
 
@@ -112,14 +109,6 @@ class GenerateEncoder(Encoder):
 class ExtractEncoder(Encoder):
     def encode_x(self, text: str) -> str:
         return f"Context : {text}"
-
-    def encode_x_pro(self, text: str, t: str) -> str:
-        if t == 'head':
-            return f"Context : {text} Head Entity :"
-        elif t == 'tail':
-            return f"{text} Tail Entity :"
-        elif t == 'relation':
-            return f"{text} Relation :"
 
     def encode_x_(self, text: str) -> str:
         mask = '<mask>'
