@@ -104,8 +104,6 @@ class VAEData(Dataset):
         return torch.LongTensor(self.sents[index]), \
                torch.LongTensor([len(self.sents[index])]),\
                 torch.LongTensor([self.relations_idx[index]])
-               # torch.LongTensor([self.rel_vocab[self.relations[index]]]), \
-
 
     def collate_fn(self, data):
         # Sort by conversation length (descending order) to use 'pack_padded_sequence'
