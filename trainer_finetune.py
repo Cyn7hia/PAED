@@ -719,7 +719,7 @@ if __name__ == "__main__":
         for s in seeds:
             split_ = f"unseen_{n}_seed_{s}"
             print("processing split:", split_)
-            # split_ = 'unseen_10_seed_0'
+            
             run_name = '/runs'
             data_name = 'u2t_map_all'
             save_dir = "outputs/wrapper/" + data_name + "/" + split_
