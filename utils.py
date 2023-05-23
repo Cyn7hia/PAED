@@ -90,17 +90,6 @@ def find_span(span: str, tokens: List[str]) -> List[int]:
             return list(range(start, end))
 
 
-def find_span_rp(span: str, tokens: List[str]) -> List[int]:
-    if span == "":
-        return []
-    start = find_sublist_index(tokens, span.split())
-    if start >= 0:
-        return [start + i for i in range(len(span.split()))]
-    else:
-        start, end = align_span_to_tokens(span, tokens)
-        return list(range(start, end))
-
-
 def find_sublist_index(items: list, query: list):
     length = len(query)
     for i in range(len(items) - length + 1):
