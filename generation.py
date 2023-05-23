@@ -117,77 +117,10 @@ class LabelConstraint:
                 best = label
                 best_score = score
 
-        # if triplet.label in self.label_map.values():
-            # assert best == triplet.label
-
-        # assert len(best) > 0
         if len(best) > 0:
             triplet.label = best
             triplet.score = best_score
         return triplet
-
-
-class TripletSearchDecoder(DynamicModel):
-    gen: TextGenerator
-    constraint: LabelConstraint
-    encoder: ExtractEncoder
-    top_k: int = 4
-
-    def generate(self, text: str, **kwargs) -> Tuple[str, Tensor]:
-        outputs = self.gen.run(
-            [text],
-            do_sample=False,
-            num_return=1,
-            num_beams=1,
-            save_scores=True,
-            **kwargs,
-        )
-
-        assert len(outputs) == 1
-        assert self.gen.scores is not None
-        scores = torch.log_softmax(self.gen.scores[0], dim=-1)
-        assert scores.ndim == 2
-        return outputs[0], scores
-
-    def find_prefix_end(self, token_ids: List[str], prefix: str) -> int:
-        prefix_ids = self.gen.tokenizer(prefix, add_special_tokens=False).input_ids
-        i = find_sublist_index(token_ids, prefix_ids)
-        position = i + len(prefix_ids)
-        return position
-
-    def branch(
-        self, text: str, prefix: str, prompt: Optional[str] = None, **kwargs
-    ) -> List[Tuple[str, float]]:
-        _, scores = self.generate(text, prompt=prompt, **kwargs)
-        token_ids = scores.argmax(dim=-1).int().tolist()
-        i = self.find_prefix_end(token_ids, prefix)
-
-        pairs = []
-        for j in torch.argsort(scores[i])[-self.top_k :]:
-            p = (prompt or "") + self.gen.decode([token_ids[:i] + [j]])[0]
-            pairs.append((p, scores[i, j].item()))
-
-        return pairs
-
-    def run(self, text: str) -> List[RelationSentence]:
-        x = self.encoder.encode_x(text)
-        outputs = []
-
-        for prompt_a, score_a in self.branch(x, prefix="Head Entity :"):
-            for prompt_b, score_b in self.branch(
-                x, prefix=" Tail Entity :", prompt=prompt_a
-            ):
-                output, scores = self.generate(x, prompt=prompt_b)
-                token_ids = scores.argmax(dim=-1).int().tolist()
-                i = self.find_prefix_end(token_ids, prefix=" Relation :")
-                score_c = max(scores[i].tolist())
-                s = self.encoder.safe_decode(x=x, y=output)
-                s = self.constraint.run(s, scores)
-                # score_c = s.score  # From LabelConstraint
-                s.score = (score_a + score_b + score_c) / 3
-                outputs.append(s)
-
-        return outputs
 
 
 class TripletSearchDecoderPro(DynamicModel):
