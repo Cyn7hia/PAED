@@ -708,7 +708,6 @@ class ExtDataTr(SingleExtTr):
         vae_relations = []
         for key in self.vae_keys:
             vae_sents.append(random.choice(self.vae_dic[key])['context'])
-            # vae_relations.append(self.vae_keys.index(key))
             vae_relations.append(self.rel_vocab[key])
         vae_relations = torch.LongTensor(vae_relations)
 
