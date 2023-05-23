@@ -754,7 +754,7 @@ class ExtDataTr(SingleExtTr):
             true_rel_idx = self.rel_vocab[true_rel]
             self.vae_rels.append(true_rel_idx)
 
-            for rel_idx in self.selected_relations_idx[relative_idx]:  # todo: selected_relations_idx, vae_keys, vae_vocab?
+            for rel_idx in self.selected_relations_idx[relative_idx]:
 
                 neg_sample = random.choice(self.vae_dic[self.rev_rel_vocab[rel_idx.item()]])
                 neg_cnt = neg_sample["context"]
@@ -836,7 +836,7 @@ class ExtDataTr(SingleExtTr):
             else:
                 self.gen_inputs.append(context)
 
-            self.ctr_inputs_pos.append(context + " " + line)  # todo: check str / list
+            self.ctr_inputs_pos.append(context + " " + line) 
             vae_inp = context.split("Context : ")[-1]
             if relation not in self.vae_dic:
                 self.vae_dic[relation] = [{'context': vae_inp, 'index': idx}]
@@ -869,7 +869,7 @@ class ExtDataTr(SingleExtTr):
                     else:
                         self.gen_inputs.append(context)
 
-                    self.ctr_inputs_pos.append(context + " " + line)  # todo: check str / list
+                    self.ctr_inputs_pos.append(context + " " + line) 
 
                 vae_inp = context.split("Context : ")[-1]
                 if relation not in self.vae_dic:
