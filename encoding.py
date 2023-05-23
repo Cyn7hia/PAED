@@ -47,9 +47,6 @@ class Encoder(BaseModel):
     def parse_line(self, line: str) -> Tuple[str, str]:
         raise NotImplementedError
 
-    def encode_prompt(self, relation: str, ent: str)-> str:
-        raise NotImplementedError
-
     def decode_(self, x: str, y: str) -> RelationSentence:
         raise NotImplementedError
 
@@ -61,24 +58,12 @@ class Encoder(BaseModel):
 
 
 class GenerateEncoder(Encoder):
-    def encode_x_(self, sent: RelationSentence) -> str:
-        s, r, o = sent.as_tuple()
-        return f"Relation : {r} Entity2 : {o} ."
 
     def encode_x(self, r: str) -> str:
         return f"Relation : {r} ."
 
-    def encode_prompt(self, r: str, tail: str):
-        return f"Relation : {r} Entity2 : {tail} ."
-
     def decode_x(self, text: str) -> str:
         return text.split("Relation : ")[-1][:-2]
-
-    def decode_prompt(self, text: str) -> Tuple[str, str]:
-        r_raw, e_raw = text.split(" Entity2 : ")
-        r = r_raw.split("Relation : ")[-1]
-        e = e_raw[:-2]
-        return r, e
 
     def encode_triplet(self, sent: RelationSentence) -> str:
         s, r, o = sent.as_tuple()
@@ -91,17 +76,8 @@ class GenerateEncoder(Encoder):
         tail = back[:-2]
         return RelationSentence.from_spans(context, head, tail, label)
 
-    def encode_y_(self, sent: RelationSentence) -> str:
-        return self.encode_x_(sent) + " " + self.encode_triplet(sent)
-
     def encode_y(self, sent: RelationSentence) -> str:
         return self.encode_x(sent.label) + " " + self.encode_triplet(sent)
-
-    def decode_y_(self, text: str, label: str) -> RelationSentence:
-        del label
-        front, back = text.split(" . Context : ")
-        label, tail = self.decode_prompt(front + " .")
-        return self.decode_triplet("Context : " + back, label)  # Todo: tail==tail from decode_triplet?
 
     def decode_y(self, text: str, label: str) -> RelationSentence:
         del label
@@ -109,20 +85,10 @@ class GenerateEncoder(Encoder):
         label = self.decode_x(front + " .")
         return self.decode_triplet("Context : " + back, label)
 
-    def decode_(self, x: str, y: str) -> RelationSentence:
-        r, tail = self.decode_prompt(x)
-        sent = self.decode_y_(y, r)
-        return sent
-
     def decode(self, x: str, y: str) -> RelationSentence:
         r = self.decode_x(x)
         sent = self.decode_y(y, r)
         return sent
-
-    def encode_(self, sent: RelationSentence) -> Tuple[str, str]:
-        x = self.encode_x_(sent)
-        y = self.encode_y_(sent)
-        return x, y
 
     def encode(self, sent: RelationSentence) -> Tuple[str, str]:
         x = self.encode_x(sent.label)
@@ -133,11 +99,8 @@ class GenerateEncoder(Encoder):
         x, y = self.parse_line(line)
         return self.decode(x, y)
 
-    def encode_to_line(self, sent: RelationSentence, tail: bool=True) -> str:
-        if tail:
-            x, y = self.encode_(sent)
-        else:
-            x, y = self.encode(sent)
+    def encode_to_line(self, sent: RelationSentence) -> str:
+        x, y = self.encode(sent)
         return y + "\n"
 
     def parse_line(self, line: str) -> Tuple[str, str]:
