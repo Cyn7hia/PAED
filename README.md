@@ -16,6 +16,9 @@
 >We present a generation-based framework for zero-shot PAED. A novel HNS strategy, Meta-VAE sampler with CSC, is presented to enhance the performance of our model.
 >Our model achieves better results than strong baselines in zero-shot PAED and negative sampling.
 
+## Dataset
+The dataset [PersonaExt](https://github.com/Cyn7hia/PAED/blob/main/data/ConvAI2/u2t_map_all.json) is publicly available.
+
 ## Requirements and Installation
 * PyTorch >= 1.10.0
 * Python version >= 3.8
