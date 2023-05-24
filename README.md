@@ -1,8 +1,8 @@
 <h2 align="center">PAED: Zero-Shot Persona Attribute Extraction in Dialogues</h2>
 
 <div align="center">
-    <a href="https://pypi.org/project/stanza/">
-        <img alt="Python Versions" src="https://img.shields.io/pypi/pyversions/stanza?colorB=blue">
+    <a>
+        <img alt="Python Versions" src="https://img.shields.io/badge/python-%3E%3D3.8-blue">
     </a>
 </div>
 
