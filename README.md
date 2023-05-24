@@ -1,4 +1,4 @@
-# PAED: Zero-Shot Persona Attribute Extraction in Dialogues
+<h2 align="center">PAED: Zero-Shot Persona Attribute Extraction in Dialogues</h2>
 
 ## Overview
 🔥 &nbsp;This is a project for our paper ([PAED: Zero-Shot Persona Attribute Extraction in Dialogues](/paper/PAED.pdf)) accepted in ACL'23 ([The 61st Annual Meeting of the Association for Computational Linguistics](https://2023.aclweb.org)).
