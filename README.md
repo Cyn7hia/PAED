@@ -17,7 +17,7 @@
 >Our model achieves better results than strong baselines in zero-shot PAED and negative sampling.
 
 ## Dataset
-The dataset [PersonaExt](https://github.com/Cyn7hia/PAED/blob/main/data/ConvAI2/u2t_map_all.json) is publicly available.
+The dataset [PersonaExt](https://github.com/Cyn7hia/PAED/blob/main/data/ConvAI2/u2t_map_all.json) is publicly available, with 105 relation types.
 
 ## Requirements and Installation
 * PyTorch >= 1.10.0
