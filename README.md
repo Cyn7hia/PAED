@@ -1,4 +1,4 @@
-<div align="center"><img src="https://github.com/Cyn7hia/PAED/images/Meta-VAE_sampler.pdf" height="100px"/></div>
+<div align="center"><img src="https://github.com/Cyn7hia/PAED/image/Meta-VAE_sampler.pdf" height="100px"/></div>
 <h2 align="center">PAED: Zero-Shot Persona Attribute Extraction in Dialogues</h2>
 
 <div align="center">
