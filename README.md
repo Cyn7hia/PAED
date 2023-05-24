@@ -1,5 +1,11 @@
 <h2 align="center">PAED: Zero-Shot Persona Attribute Extraction in Dialogues</h2>
 
+<div align="center">
+    <a href="https://pypi.org/project/stanza/">
+        <img alt="Python Versions" src="https://img.shields.io/pypi/pyversions/stanza?colorB=blue">
+    </a>
+</div>
+
 ## Overview
 🔥 &nbsp;This is a project for our paper ([PAED: Zero-Shot Persona Attribute Extraction in Dialogues](/paper/PAED.pdf)) accepted in ACL'23 ([The 61st Annual Meeting of the Association for Computational Linguistics](https://2023.aclweb.org)).
 >In this work, we develop a PAED dataset, PersonaExt, with 1,896 re-annotated triplets and 6,357 corrected utterance-triplet pairs. 
