@@ -1,7 +1,5 @@
 # torch==1.10.0
-# transformers==4.7.0
 transformers==4.22.2
-# datasets==1.11.0
 datasets
 pandas==1.2.4
 pydantic==1.8.2
@@ -14,6 +12,3 @@ seqeval==1.2.2
 pyyaml
 tqdm
 spacy
-# python -m spacy download en
-# >>> import nltk
-# >>> nltk.download('punkt')
