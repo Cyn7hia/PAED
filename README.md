@@ -45,6 +45,9 @@ To change the random seeds for selecting the unseen labels, you may find the var
 
 The default evaluation is the results of single triplet extraction. To get the evaluation for multiple triplet extraction for other dataset, e.g., fewrel, you may set the flag `mode='multi'` of the function `run_eval`. Additionally, you need to remember to place the target dataset under the directory of `/outputs/data/splits/zero_rte/[YOURDATA]/unseen_[x]_seed_[x]/`, which should conver train.json, dev.json and test.json.
 
+## Issues and Usage Q&A
+To ask questions, report issues or request features 🤔, please use the [GitHub Issue Tracker](https://github.com/Cyn7hia/PAED/issues). Before creating a new issue, please make sure to search for existing issues that may solve your problem.
+
 ## Citation
 Please cite as
 ```bibtex
