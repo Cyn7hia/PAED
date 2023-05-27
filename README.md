@@ -6,7 +6,7 @@
         <img alt="Python Versions" src="https://img.shields.io/badge/python-%3E%3D3.8-blue">
     </a>
     <a>
-        <img alt="PyTorch Versions" src="https://img.shields.io/badge/pytorch-%3E%3D1.10.0-blue">
+        <img alt="PyTorch Versions" src="https://img.shields.io/badge/pytorch-%3E%3D1.10.0-green">
     </a>
 </div>
 
