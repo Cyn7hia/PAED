@@ -54,11 +54,21 @@ To ask questions, report issues or request features 🤔, please use the [GitHub
 ## Citation
 Please cite as
 ```bibtex
-@inproceedings{zhu2023paed,
-  title = {PAED: Zero-Shot Persona Attribute Extraction in Dialogues},
-  author = {Zhu, Luyao and Li, Wei and Mao, Rui and Pandelea, Vlad and Cambria, Erik},
-  booktitle = {Proceedings of the Annual Meeting of the Association for Computational Linguistics},
-  year = {2023}
+
+@inproceedings{zhu-etal-2023-paed,
+    title = {{PAED}: Zero-Shot Persona Attribute Extraction in Dialogues},
+    author = {Zhu, Luyao  and
+      Li, Wei  and
+      Mao, Rui  and
+      Pandelea, Vlad  and
+      Cambria, Erik},
+    booktitle = {Proceedings of the 61st Annual Meeting of the Association for Computational Linguistics (Volume 1: Long Papers)},
+    month = jul,
+    year = {2023},
+    address = {Toronto, Canada},
+    publisher = {Association for Computational Linguistics},
+    url = {https://aclanthology.org/2023.acl-long.544},
+    pages = {9771--9787}
 }
 ```
 
