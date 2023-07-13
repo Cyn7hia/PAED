@@ -63,7 +63,7 @@ Please cite as
       Pandelea, Vlad  and
       Cambria, Erik},
     booktitle = {Proceedings of the 61st Annual Meeting of the Association for Computational Linguistics (Volume 1: Long Papers)},
-    month = jul,
+    month = {jul},
     year = {2023},
     address = {Toronto, Canada},
     publisher = {Association for Computational Linguistics},
