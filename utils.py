@@ -283,3 +283,11 @@ def _get_learning_rate(lr_scheduler):
     if torch.is_tensor(last_lr):
         last_lr = last_lr.item()
     return last_lr
+
+
+def load_u2t(map_type='diff'):
+
+    with open('./data/ConvAI2/u2t_map_{}.json'.format(map_type), 'r') as f:
+        u2t_map_load = json.load(f)
+
+    return u2t_map_load
