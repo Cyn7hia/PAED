@@ -12,8 +12,7 @@ from nltk import word_tokenize, pos_tag
 
 from modeling import (RelationGenerator, RelationModel,
                       select_model)
-from utils import (RelationSentence, delete_checkpoints, safe_divide)
-from knowledge_prepare import load_u2t
+from utils import (RelationSentence, delete_checkpoints, safe_divide, load_u2t)
 
 
 class Sentence(BaseModel):
