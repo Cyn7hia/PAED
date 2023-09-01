@@ -592,8 +592,10 @@ def main(
         data_name: str,
         split: str,
         last: bool = False,
+        synthetic: bool = False
 ):
-    # gen_synthetic(save_dir, path_train, path_dev, path_test)
+    if synthetic:
+        gen_synthetic(save_dir, path_train, path_dev, path_test)
     logging.set_verbosity_info()
     logger = logging.get_logger("transformers")
 
@@ -737,7 +739,8 @@ if __name__ == "__main__":
                 path_model=path_model,
                 data_name=data_name,
                 split=split,
-                last=False)
+                last=False,
+                synthetic=True)  # set synthetic=False if there has been a synthetic.jsonl file in the directory.
             run_eval(save_dir=save_dir,
                      path_model=path_model,
                      path_test=path_test,
