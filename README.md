@@ -34,17 +34,19 @@ To run this code, please use the following command (take split `unseen_10_seed_0
 ```bash
 python trainer_finetune.py
 ```
-To change the number of test labels, you may find the variable `num_test_labels` in the 717th line in `trainer_finetune.py` and put any number from {5, 10, 15} into the list.
+To change the number of test labels, you may find the variable `num_test_labels` in the 719th line in `trainer_finetune.py` and put any number from {5, 10, 15} into the list.
 >For example, to change the number of test labels into 5, you may set:
 ```python
 >>>num_test_labels=[5]
 ```
 
-To change the random seeds for selecting the unseen labels, you may find the variable `seeds` in the 718th line in `trainer_finetune.py` and put any number from {0, 1, 2, 3, 4} into the list.
+To change the random seeds for selecting the unseen labels, you may find the variable `seeds` in the 720th line in `trainer_finetune.py` and put any number from {0, 1, 2, 3, 4} into the list.
 >For example, to change the seed into 1, you may set:
 ```python
 >>>seeds=[1]
 ```
+
+For users who runs the code for the first time, the variable `synthetic` of functoin `main` (in the 743th line of `trainer_finetune.py`) should always set as `synthetic=True`; You may set `synthetic=False` only if there has been a synthetic.jsonl file in the directory.
 
 The default evaluation is tailored for the results of single triplet extraction. To get the evaluation for multiple triplet extraction for other dataset, e.g., fewrel, you may set the flag `mode='multi'` of the function `run_eval`. Additionally, you need to remember to place the target dataset under the directory of `/outputs/data/splits/zero_rte/[YOURDATA]/unseen_[x]_seed_[x]/`, which should conver train.json, dev.json and test.json.
 
