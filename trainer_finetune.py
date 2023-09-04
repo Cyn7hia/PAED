@@ -438,7 +438,7 @@ def training(save_dir, path_model, data_name, split, logger):
     vae_dataloader_tr, _ = get_dataloader(train_vae, model_type='single_vae', bz=train_args.per_device_train_batch_size)
     vae_dataloader_dev, _ = get_dataloader(dev_vae, model_type='single_vae', bz=train_args.per_device_train_batch_size)
 
-    ext_dataloader_tr, _ = get_dataloader(['train_syn', save_dir, model_args, train_args, data_args, vae_args,
+    ext_dataloader_tr, _ = get_dataloader(['train', save_dir, model_args, train_args, data_args, vae_args,
                                            data_name, split],
                                           model_type='single_ext', bz=train_args.per_device_train_batch_size)
     ext_dataloader_dev, _ = get_dataloader(['dev', save_dir, model_args, train_args, data_args, vae_args,
