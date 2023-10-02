@@ -233,7 +233,8 @@ class Trainer(nn.Module):
                     sents.append(Sentence(triplets=[triplet]))
 
             wr_Dataset(sents=sents).save(path_out)
-
+            
+    # deprecated
     def predict_single(self, path_in: str, path_out: str, tokenizer: Any, use_mask: bool = False):
 
         stem = Path(path_out).stem
